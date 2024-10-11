@@ -546,8 +546,6 @@ fn walkExpression(w: *Walk, node: Ast.Node.Index) Error!void {
             try walkExpressions(w, cases);
         },
 
-        .switch_case_one,
-        .switch_case_inline_one,
         .switch_case,
         .switch_case_inline,
         => return walkSwitchCase(w, ast.fullSwitchCase(node).?),

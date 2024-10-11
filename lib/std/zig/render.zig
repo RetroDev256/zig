@@ -858,8 +858,6 @@ fn renderExpression(r: *Render, node: Ast.Node.Index, space: Space) Error!void {
             return renderToken(r, tree.lastToken(node), space); // }
         },
 
-        .switch_case_one,
-        .switch_case_inline_one,
         .switch_case,
         .switch_case_inline,
         => return renderSwitchCase(r, tree.fullSwitchCase(node).?, space),

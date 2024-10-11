@@ -665,8 +665,6 @@ fn expr(w: *Walk, scope: *Scope, parent_decl: Decl.Index, node: Ast.Node.Index) 
 
         .switch_case => unreachable, // Handled in `switchExpr`.
         .switch_case_inline => unreachable, // Handled in `switchExpr`.
-        .switch_case_one => unreachable, // Handled in `switchExpr`.
-        .switch_case_inline_one => unreachable, // Handled in `switchExpr`.
 
         .asm_output => unreachable, // Handled in `asmExpr`.
         .asm_input => unreachable, // Handled in `asmExpr`.

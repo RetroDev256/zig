@@ -1835,12 +1835,17 @@ fn renderNode(c: *Context, node: Node) Allocator.Error!NodeIndex {
         .switch_else => {
             const payload = node.castTag(.switch_else).?.data;
             _ = try c.addToken(.keyword_else, "else");
+            const item: NodeIndex = try renderNode(c, payload);
+            const span = try c.listToSpan(&.{item});
             return c.addNode(.{
-                .tag = .switch_case_one,
+                .tag = .switch_case,
                 .main_token = try c.addToken(.equal_angle_bracket_right, "=>"),
                 .data = .{
-                    .lhs = 0,
-                    .rhs = try renderNode(c, payload),
+                    .lhs = try c.addExtra(NodeSubRange{
+                        .start = span.start,
+                        .end = span.end,
+                    }),
+                    .rhs = try renderNode(c, payload.cond),
                 },
             });
         },
@@ -1854,29 +1859,18 @@ fn renderNode(c: *Context, node: Node) Allocator.Error!NodeIndex {
                 items[i] = try renderNode(c, item);
             }
             _ = try c.addToken(.r_brace, "}");
-            if (items.len < 2) {
-                return c.addNode(.{
-                    .tag = .switch_case_one,
-                    .main_token = try c.addToken(.equal_angle_bracket_right, "=>"),
-                    .data = .{
-                        .lhs = items[0],
-                        .rhs = try renderNode(c, payload.cond),
-                    },
-                });
-            } else {
-                const span = try c.listToSpan(items);
-                return c.addNode(.{
-                    .tag = .switch_case,
-                    .main_token = try c.addToken(.equal_angle_bracket_right, "=>"),
-                    .data = .{
-                        .lhs = try c.addExtra(NodeSubRange{
-                            .start = span.start,
-                            .end = span.end,
-                        }),
-                        .rhs = try renderNode(c, payload.cond),
-                    },
-                });
-            }
+            const span = try c.listToSpan(items);
+            return c.addNode(.{
+                .tag = .switch_case,
+                .main_token = try c.addToken(.equal_angle_bracket_right, "=>"),
+                .data = .{
+                    .lhs = try c.addExtra(NodeSubRange{
+                        .start = span.start,
+                        .end = span.end,
+                    }),
+                    .rhs = try renderNode(c, payload.cond),
+                },
+            });
         },
         .opaque_literal => {
             const opaque_tok = try c.addToken(.keyword_opaque, "opaque");
