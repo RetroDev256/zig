@@ -387,8 +387,6 @@ fn walkExpression(w: *Walk, node: Ast.Node.Index) Error!void {
         .ptr_type_bit_range,
         => {},
 
-        .array_init_one,
-        .array_init_one_comma,
         .array_init_dot_two,
         .array_init_dot_two_comma,
         .array_init_dot,

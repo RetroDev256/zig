@@ -1072,8 +1072,6 @@ pub const SrcLoc = struct {
                     assert(node_tags[node] == .builtin_call);
                     const call_args_node = tree.extra_data[tree.nodes.items(.data)[node].rhs - 1];
                     switch (node_tags[call_args_node]) {
-                        .array_init_one,
-                        .array_init_one_comma,
                         .array_init_dot_two,
                         .array_init_dot_two_comma,
                         .array_init_dot,
@@ -1153,8 +1151,6 @@ pub const SrcLoc = struct {
                 const node_tags = tree.nodes.items(.tag);
                 var buf: [2]Ast.Node.Index = undefined;
                 switch (node_tags[arr_node]) {
-                    .array_init_one,
-                    .array_init_one_comma,
                     .array_init_dot_two,
                     .array_init_dot_two_comma,
                     .array_init_dot,

@@ -933,8 +933,6 @@ fn expr(w: *Walk, scope: *Scope, parent_decl: Decl.Index, node: Ast.Node.Index) 
             }
         },
 
-        .array_init_one,
-        .array_init_one_comma,
         .array_init_dot_two,
         .array_init_dot_two_comma,
         .array_init_dot,

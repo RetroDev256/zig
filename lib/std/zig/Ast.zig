@@ -590,8 +590,6 @@ pub fn firstToken(tree: Ast, node: Node.Index) TokenIndex {
         .slice_sentinel,
         .deref,
         .array_access,
-        .array_init_one,
-        .array_init_one_comma,
         .array_init,
         .array_init_comma,
         .struct_init_one,
@@ -1135,7 +1133,6 @@ pub fn lastToken(tree: Ast, node: Node.Index) TokenIndex {
             }
         },
 
-        .array_init_one,
         .struct_init_one,
         => {
             end_offset += 1; // rbrace
@@ -1148,7 +1145,6 @@ pub fn lastToken(tree: Ast, node: Node.Index) TokenIndex {
         .slice_open,
         .call_one_comma,
         .async_call_one_comma,
-        .array_init_one_comma,
         .struct_init_one_comma,
         => {
             end_offset += 2; // ellipsis2 + rbracket, or comma + rparen
@@ -1572,21 +1568,6 @@ pub fn structInit(tree: Ast, node: Node.Index) full.StructInit {
         .ast = .{
             .lbrace = tree.nodes.items(.main_token)[node],
             .fields = tree.extra_data[fields_range.start..fields_range.end],
-            .type_expr = data.lhs,
-        },
-    };
-}
-
-pub fn arrayInitOne(tree: Ast, buffer: *[1]Node.Index, node: Node.Index) full.ArrayInit {
-    assert(tree.nodes.items(.tag)[node] == .array_init_one or
-        tree.nodes.items(.tag)[node] == .array_init_one_comma);
-    const data = tree.nodes.items(.data)[node];
-    buffer[0] = data.rhs;
-    const elements = if (data.rhs == 0) buffer[0..0] else buffer[0..1];
-    return .{
-        .ast = .{
-            .lbrace = tree.nodes.items(.main_token)[node],
-            .elements = elements,
             .type_expr = data.lhs,
         },
     };
@@ -2430,7 +2411,6 @@ pub fn fullStructInit(tree: Ast, buffer: *[2]Ast.Node.Index, node: Node.Index) ?
 
 pub fn fullArrayInit(tree: Ast, buffer: *[2]Node.Index, node: Node.Index) ?full.ArrayInit {
     return switch (tree.nodes.items(.tag)[node]) {
-        .array_init_one, .array_init_one_comma => tree.arrayInitOne(buffer[0..1], node),
         .array_init_dot_two, .array_init_dot_two_comma => tree.arrayInitDotTwo(buffer, node),
         .array_init_dot, .array_init_dot_comma => tree.arrayInitDot(node),
         .array_init, .array_init_comma => tree.arrayInit(node),
@@ -3195,10 +3175,6 @@ pub const Node = struct {
         deref,
         /// `lhs[rhs]`.
         array_access,
-        /// `lhs{rhs}`. rhs can be omitted.
-        array_init_one,
-        /// `lhs{rhs,}`. rhs can *not* be omitted
-        array_init_one_comma,
         /// `.{lhs, rhs}`. lhs and rhs can be omitted.
         array_init_dot_two,
         /// Same as `array_init_dot_two` except there is known to be a trailing comma

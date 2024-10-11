@@ -627,8 +627,6 @@ fn renderExpression(r: *Render, node: Ast.Node.Index, space: Space) Error!void {
         .ptr_type_bit_range,
         => return renderPtrType(r, tree.fullPtrType(node).?, space),
 
-        .array_init_one,
-        .array_init_one_comma,
         .array_init_dot_two,
         .array_init_dot_two_comma,
         .array_init_dot,

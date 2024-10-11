@@ -2452,14 +2452,6 @@ fn parseCurlySuffixExpr(p: *Parse) !Node.Index {
                 .rhs = 0,
             },
         }),
-        1 => return p.addNode(.{
-            .tag = if (comma) .array_init_one_comma else .array_init_one,
-            .main_token = lbrace,
-            .data = .{
-                .lhs = lhs,
-                .rhs = inits[0],
-            },
-        }),
         else => return p.addNode(.{
             .tag = if (comma) .array_init_comma else .array_init,
             .main_token = lbrace,

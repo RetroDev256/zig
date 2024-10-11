@@ -1917,12 +1917,18 @@ fn renderNode(c: *Context, node: Node) Allocator.Error!NodeIndex {
             const val = try renderNode(c, payload.filler);
             _ = try c.addToken(.r_brace, "}");
 
+            const rendered = try renderNode(c, val);
+            const span = try c.listToSpan(rendered);
+
             const init = try c.addNode(.{
-                .tag = .array_init_one,
+                .tag = .array_init,
                 .main_token = l_brace,
                 .data = .{
                     .lhs = type_expr,
-                    .rhs = val,
+                    .rhs = try c.addExtra(NodeSubRange{
+                        .start = span.start,
+                        .end = span.end,
+                    }),
                 },
             });
             return c.addNode(.{
@@ -2241,29 +2247,19 @@ fn renderArrayInit(c: *Context, lhs: NodeIndex, inits: []const Node) !NodeIndex 
         _ = try c.addToken(.comma, ",");
     }
     _ = try c.addToken(.r_brace, "}");
-    if (inits.len < 2) {
-        return c.addNode(.{
-            .tag = .array_init_one_comma,
-            .main_token = l_brace,
-            .data = .{
-                .lhs = lhs,
-                .rhs = rendered[0],
-            },
-        });
-    } else {
-        const span = try c.listToSpan(rendered);
-        return c.addNode(.{
-            .tag = .array_init_comma,
-            .main_token = l_brace,
-            .data = .{
-                .lhs = lhs,
-                .rhs = try c.addExtra(NodeSubRange{
-                    .start = span.start,
-                    .end = span.end,
-                }),
-            },
-        });
-    }
+
+    const span = try c.listToSpan(rendered);
+    return c.addNode(.{
+        .tag = .array_init_comma,
+        .main_token = l_brace,
+        .data = .{
+            .lhs = lhs,
+            .rhs = try c.addExtra(NodeSubRange{
+                .start = span.start,
+                .end = span.end,
+            }),
+        },
+    });
 }
 
 fn renderArrayType(c: *Context, len: usize, elem_type: Node) !NodeIndex {

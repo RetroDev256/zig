@@ -655,8 +655,6 @@ fn expr(astrl: *AstRlAnnotate, node: Ast.Node.Index, block: ?*Block, ri: ResultI
             return false;
         },
 
-        .array_init_one,
-        .array_init_one_comma,
         .array_init_dot_two,
         .array_init_dot_two_comma,
         .array_init_dot,
