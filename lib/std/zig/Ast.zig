@@ -131,7 +131,7 @@ pub fn renderToArrayList(tree: Ast, buffer: *std.ArrayList(u8), fixups: Fixups) 
 /// should point after the token in the error message.
 pub fn errorOffset(tree: Ast, parse_error: Error) u32 {
     return if (parse_error.token_is_prev)
-        @as(u32, @intCast(tree.tokenSlice(parse_error.token).len))
+        @intCast(tree.tokenSlice(parse_error.token).len)
     else
         0;
 }
@@ -774,7 +774,7 @@ pub fn lastToken(tree: Ast, node: Node.Index) TokenIndex {
     var n = node;
     var end_offset: TokenIndex = 0;
     while (true) switch (tags[n]) {
-        .root => return @as(TokenIndex, @intCast(tree.tokens.len - 1)),
+        .root => return @intCast(tree.tokens.len - 1),
 
         .@"usingnamespace",
         .bool_not,
@@ -1280,7 +1280,7 @@ pub fn lastToken(tree: Ast, node: Node.Index) TokenIndex {
             n = extra.else_expr;
         },
         .@"for" => {
-            const extra = @as(Node.For, @bitCast(datas[n].rhs));
+            const extra: Node.For = @bitCast(datas[n].rhs);
             n = tree.extra_data[datas[n].lhs + extra.inputs + @intFromBool(extra.has_else)];
         },
         .@"suspend" => {
@@ -1951,7 +1951,7 @@ pub fn forSimple(tree: Ast, node: Node.Index) full.For {
 
 pub fn forFull(tree: Ast, node: Node.Index) full.For {
     const data = tree.nodes.items(.data)[node];
-    const extra = @as(Node.For, @bitCast(data.rhs));
+    const extra: Node.For = @bitCast(data.rhs);
     const inputs = tree.extra_data[data.lhs..][0..extra.inputs];
     const then_expr = tree.extra_data[data.lhs + extra.inputs];
     const else_expr = if (extra.has_else) tree.extra_data[data.lhs + extra.inputs + 1] else 0;

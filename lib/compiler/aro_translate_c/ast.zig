@@ -400,7 +400,7 @@ pub const Node = extern union {
 
     pub fn tag(self: Node) Tag {
         if (self.tag_if_small_enough < Tag.no_payload_count) {
-            return @as(Tag, @enumFromInt(@as(std.meta.Tag(Tag), @intCast(self.tag_if_small_enough))));
+            return @enumFromInt(@as(std.meta.Tag(Tag), @intCast(self.tag_if_small_enough)));
         } else {
             return self.ptr_otherwise.tag;
         }
@@ -786,7 +786,7 @@ pub fn render(gpa: Allocator, nodes: []const Node) !std.zig.Ast {
 
     try ctx.tokens.append(gpa, .{
         .tag = .eof,
-        .start = @as(u32, @intCast(ctx.buf.items.len)),
+        .start = @intCast(ctx.buf.items.len),
     });
 
     return std.zig.Ast{
@@ -817,10 +817,10 @@ const Context = struct {
 
         try c.tokens.append(c.gpa, .{
             .tag = tag,
-            .start = @as(u32, @intCast(start_index)),
+            .start = @intCast(start_index),
         });
 
-        return @as(u32, @intCast(c.tokens.len - 1));
+        return @intCast(c.tokens.len - 1);
     }
 
     fn addToken(c: *Context, tag: TokenTag, bytes: []const u8) Allocator.Error!TokenIndex {
@@ -836,13 +836,13 @@ const Context = struct {
     fn listToSpan(c: *Context, list: []const NodeIndex) Allocator.Error!NodeSubRange {
         try c.extra_data.appendSlice(c.gpa, list);
         return NodeSubRange{
-            .start = @as(NodeIndex, @intCast(c.extra_data.items.len - list.len)),
-            .end = @as(NodeIndex, @intCast(c.extra_data.items.len)),
+            .start = @intCast(c.extra_data.items.len - list.len),
+            .end = @intCast(c.extra_data.items.len),
         };
     }
 
     fn addNode(c: *Context, elem: std.zig.Ast.Node) Allocator.Error!NodeIndex {
-        const result = @as(NodeIndex, @intCast(c.nodes.len));
+        const result: NodeIndex = @intCast(c.nodes.len);
         try c.nodes.append(c.gpa, elem);
         return result;
     }
@@ -850,7 +850,7 @@ const Context = struct {
     fn addExtra(c: *Context, extra: anytype) Allocator.Error!NodeIndex {
         const fields = std.meta.fields(@TypeOf(extra));
         try c.extra_data.ensureUnusedCapacity(c.gpa, fields.len);
-        const result = @as(u32, @intCast(c.extra_data.items.len));
+        const result: NodeIndex = @intCast(c.extra_data.items.len);
         inline for (fields) |field| {
             comptime std.debug.assert(field.type == NodeIndex);
             c.extra_data.appendAssumeCapacity(@field(extra, field.name));
@@ -880,7 +880,7 @@ fn renderNode(c: *Context, node: Node) Allocator.Error!NodeIndex {
             try c.buf.append('\n');
             try c.buf.appendSlice(payload);
             try c.buf.append('\n');
-            return @as(NodeIndex, 0); // error: integer value 0 cannot be coerced to type 'std.mem.Allocator.Error!u32'
+            return 0;
         },
         .helpers_cast => {
             const payload = node.castTag(.helpers_cast).?.data;
@@ -1648,7 +1648,7 @@ fn renderNode(c: *Context, node: Node) Allocator.Error!NodeIndex {
         .pub_inline_fn => return renderMacroFunc(c, node),
         .discard => {
             const payload = node.castTag(.discard).?.data;
-            if (payload.should_skip) return @as(NodeIndex, 0);
+            if (payload.should_skip) return 0;
 
             const lhs = try c.addNode(.{
                 .tag = .identifier,

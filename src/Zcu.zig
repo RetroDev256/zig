@@ -513,7 +513,7 @@ pub const File = struct {
         if (stat.size > std.math.maxInt(u32))
             return error.FileTooBig;
 
-        const source = try gpa.allocSentinel(u8, @as(usize, @intCast(stat.size)), 0);
+        const source = try gpa.allocSentinel(u8, @intCast(stat.size), 0);
         defer if (!file.source_loaded) gpa.free(source);
         const amt = try f.readAll(source);
         if (amt != stat.size)
@@ -1029,7 +1029,7 @@ pub const SrcLoc = struct {
                 // that contains this input.
                 const node_tags = tree.nodes.items(.tag);
                 for (node_tags, 0..) |node_tag, node_usize| {
-                    const node = @as(Ast.Node.Index, @intCast(node_usize));
+                    const node: Ast.Node.Index = @intCast(node_usize);
                     switch (node_tag) {
                         .for_simple, .@"for" => {
                             const for_full = tree.fullFor(node).?;
@@ -1271,7 +1271,7 @@ pub const SrcLoc = struct {
                 const tree = try src_loc.file_scope.getTree(gpa);
                 const token_tags = tree.tokens.items(.tag);
                 const main_token = tree.nodes.items(.main_token)[src_loc.base_node];
-                const tok_index = @as(Ast.TokenIndex, @bitCast(token_off + @as(i32, @bitCast(main_token))));
+                const tok_index: Ast.TokenIndex = @bitCast(token_off + @as(i32, @bitCast(main_token)));
 
                 var first_tok = tok_index;
                 while (true) switch (token_tags[first_tok - 1]) {
@@ -2238,14 +2238,14 @@ pub fn loadZirCacheBody(gpa: Allocator, header: Zir.Header, cache_file: std.fs.F
         undefined;
     defer if (data_has_safety_tag) gpa.free(safety_buffer);
 
-    const data_ptr = if (data_has_safety_tag)
-        @as([*]u8, @ptrCast(safety_buffer.ptr))
+    const data_ptr: [*]u8 = if (data_has_safety_tag)
+        @ptrCast(safety_buffer.ptr)
     else
-        @as([*]u8, @ptrCast(zir.instructions.items(.data).ptr));
+        @ptrCast(zir.instructions.items(.data).ptr);
 
     var iovecs = [_]std.posix.iovec{
         .{
-            .base = @as([*]u8, @ptrCast(zir.instructions.items(.tag).ptr)),
+            .base = @ptrCast(zir.instructions.items(.tag).ptr),
             .len = header.instructions_len,
         },
         .{
@@ -2257,7 +2257,7 @@ pub fn loadZirCacheBody(gpa: Allocator, header: Zir.Header, cache_file: std.fs.F
             .len = header.string_bytes_len,
         },
         .{
-            .base = @as([*]u8, @ptrCast(zir.extra.ptr)),
+            .base = @ptrCast(zir.extra.ptr),
             .len = header.extra_len * 4,
         },
     };
@@ -2270,7 +2270,7 @@ pub fn loadZirCacheBody(gpa: Allocator, header: Zir.Header, cache_file: std.fs.F
         const tags = zir.instructions.items(.tag);
         for (zir.instructions.items(.data), 0..) |*data, i| {
             const union_tag = Zir.Inst.Tag.data_tags[@intFromEnum(tags[i])];
-            const as_struct = @as(*HackDataLayout, @ptrCast(data));
+            const as_struct: *HackDataLayout = @ptrCast(data);
             as_struct.* = .{
                 .safety_tag = @intFromEnum(union_tag),
                 .data = safety_buffer[i],

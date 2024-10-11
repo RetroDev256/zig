@@ -2888,7 +2888,7 @@ fn renderIdentifier(r: *Render, token_index: Ast.TokenIndex, space: Space, quote
     while (contents_i < contents.len and buf_i < longest_keyword_or_primitive_len) {
         if (contents[contents_i] == '\\') {
             const res = std.zig.string_literal.parseEscapeSequence(contents, &contents_i).success;
-            buf[buf_i] = @as(u8, @intCast(res));
+            buf[buf_i] = @intCast(res);
             buf_i += 1;
         } else {
             buf[buf_i] = contents[contents_i];
@@ -2944,7 +2944,7 @@ fn renderIdentifierContents(writer: anytype, bytes: []const u8) !void {
                 switch (res) {
                     .success => |codepoint| {
                         if (codepoint <= 0x7f) {
-                            const buf = [1]u8{@as(u8, @intCast(codepoint))};
+                            const buf: [1]u8 = .{@intCast(codepoint)};
                             try std.fmt.format(writer, "{}", .{std.zig.fmtEscapes(&buf)});
                         } else {
                             try writer.writeAll(escape_sequence);
@@ -3340,9 +3340,7 @@ fn AutoIndentingStream(comptime UnderlyingWriter: type) type {
         }
 
         pub fn write(self: *Self, bytes: []const u8) WriteError!usize {
-            if (bytes.len == 0)
-                return @as(usize, 0);
-
+            if (bytes.len == 0) return 0;
             try self.applyIndent();
             return self.writeNoIndent(bytes);
         }
