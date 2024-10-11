@@ -3374,32 +3374,14 @@ fn parseSwitchProng(p: *Parse) !Node.Index {
     _ = try p.parsePtrIndexPayload();
 
     const items = p.scratch.items[scratch_top..];
-    switch (items.len) {
-        0 => return p.addNode(.{
-            .tag = if (is_inline) .switch_case_inline_one else .switch_case_one,
-            .main_token = arrow_token,
-            .data = .{
-                .lhs = 0,
-                .rhs = try p.expectSingleAssignExpr(),
-            },
-        }),
-        1 => return p.addNode(.{
-            .tag = if (is_inline) .switch_case_inline_one else .switch_case_one,
-            .main_token = arrow_token,
-            .data = .{
-                .lhs = items[0],
-                .rhs = try p.expectSingleAssignExpr(),
-            },
-        }),
-        else => return p.addNode(.{
-            .tag = if (is_inline) .switch_case_inline else .switch_case,
-            .main_token = arrow_token,
-            .data = .{
-                .lhs = try p.addExtra(try p.listToSpan(items)),
-                .rhs = try p.expectSingleAssignExpr(),
-            },
-        }),
-    }
+    return p.addNode(.{
+        .tag = if (is_inline) .switch_case_inline else .switch_case,
+        .main_token = arrow_token,
+        .data = .{
+            .lhs = try p.addExtra(try p.listToSpan(items)),
+            .rhs = try p.expectSingleAssignExpr(),
+        },
+    });
 }
 
 /// SwitchItem <- Expr (DOT3 Expr)?

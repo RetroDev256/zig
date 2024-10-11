@@ -731,20 +731,6 @@ pub fn firstToken(tree: Ast, node: Node.Index) TokenIndex {
         .ptr_type_bit_range,
         => return main_tokens[n] - end_offset,
 
-        .switch_case_one => {
-            if (datas[n].lhs == 0) {
-                return main_tokens[n] - 1 - end_offset; // else token
-            } else {
-                n = datas[n].lhs;
-            }
-        },
-        .switch_case_inline_one => {
-            if (datas[n].lhs == 0) {
-                return main_tokens[n] - 2 - end_offset; // else token
-            } else {
-                return firstToken(tree, datas[n].lhs) - 1;
-            }
-        },
         .switch_case => {
             const extra = tree.extraData(datas[n].lhs, Node.SubRange);
             assert(extra.end - extra.start > 0);
@@ -870,8 +856,6 @@ pub fn lastToken(tree: Ast, node: Node.Index) TokenIndex {
         .ptr_type,
         .ptr_type_bit_range,
         .array_type,
-        .switch_case_one,
-        .switch_case_inline_one,
         .switch_case,
         .switch_case_inline,
         .switch_range,
@@ -1907,16 +1891,6 @@ pub fn switchFull(tree: Ast, node: Node.Index) full.Switch {
     };
 }
 
-pub fn switchCaseOne(tree: Ast, node: Node.Index) full.SwitchCase {
-    const data = &tree.nodes.items(.data)[node];
-    const values: *[1]Node.Index = &data.lhs;
-    return tree.fullSwitchCaseComponents(.{
-        .values = if (data.lhs == 0) values[0..0] else values[0..1],
-        .arrow_token = tree.nodes.items(.main_token)[node],
-        .target_expr = data.rhs,
-    }, node);
-}
-
 pub fn switchCase(tree: Ast, node: Node.Index) full.SwitchCase {
     const data = tree.nodes.items(.data)[node];
     const extra = tree.extraData(data.lhs, Node.SubRange);
@@ -2245,7 +2219,7 @@ fn fullSwitchCaseComponents(tree: Ast, info: full.SwitchCase.Components, node: N
         result.payload_token = info.arrow_token + 2;
     }
     switch (node_tags[node]) {
-        .switch_case_inline, .switch_case_inline_one => result.inline_token = firstToken(tree, node),
+        .switch_case_inline => result.inline_token = firstToken(tree, node),
         else => {},
     }
     return result;
@@ -2513,8 +2487,9 @@ pub fn fullSwitch(tree: Ast, node: Node.Index) ?full.Switch {
 
 pub fn fullSwitchCase(tree: Ast, node: Node.Index) ?full.SwitchCase {
     return switch (tree.nodes.items(.tag)[node]) {
-        .switch_case_one, .switch_case_inline_one => tree.switchCaseOne(node),
-        .switch_case, .switch_case_inline => tree.switchCase(node),
+        .switch_case,
+        .switch_case_inline,
+        => tree.switchCase(node),
         else => null,
     };
 }
@@ -3293,11 +3268,6 @@ pub const Node = struct {
         /// Same as switch except there is known to be a trailing comma
         /// before the final rbrace
         switch_comma,
-        /// `lhs => rhs`. If lhs is omitted it means `else`.
-        /// main_token is the `=>`
-        switch_case_one,
-        /// Same ast `switch_case_one` but the case is inline
-        switch_case_inline_one,
         /// `a, b, c => rhs`. `SubRange[lhs]`.
         /// main_token is the `=>`
         switch_case,

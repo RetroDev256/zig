@@ -435,8 +435,6 @@ fn lvalExpr(gz: *GenZir, scope: *Scope, node: Ast.Node.Index) InnerError!Zir.Ins
         .aligned_var_decl => unreachable,
         .switch_case => unreachable,
         .switch_case_inline => unreachable,
-        .switch_case_one => unreachable,
-        .switch_case_inline_one => unreachable,
         .container_field_init => unreachable,
         .container_field_align => unreachable,
         .container_field => unreachable,
@@ -653,8 +651,6 @@ fn expr(gz: *GenZir, scope: *Scope, ri: ResultInfo, node: Ast.Node.Index) InnerE
 
         .switch_case => unreachable, // Handled in `switchExpr`.
         .switch_case_inline => unreachable, // Handled in `switchExpr`.
-        .switch_case_one => unreachable, // Handled in `switchExpr`.
-        .switch_case_inline_one => unreachable, // Handled in `switchExpr`.
         .switch_range => unreachable, // Handled in `switchExpr`.
 
         .asm_output => unreachable, // Handled in `asmExpr`.
@@ -10315,8 +10311,6 @@ fn nodeMayEvalToError(tree: *const Ast, start_node: Ast.Node.Index) BuiltinFn.Ev
             .test_decl,
             .switch_case,
             .switch_case_inline,
-            .switch_case_one,
-            .switch_case_inline_one,
             .container_field_init,
             .container_field_align,
             .container_field,
@@ -10530,8 +10524,6 @@ fn nodeImpliesMoreThanOnePossibleValue(tree: *const Ast, start_node: Ast.Node.In
             .test_decl,
             .switch_case,
             .switch_case_inline,
-            .switch_case_one,
-            .switch_case_inline_one,
             .container_field_init,
             .container_field_align,
             .container_field,
@@ -10777,8 +10769,6 @@ fn nodeImpliesComptimeOnly(tree: *const Ast, start_node: Ast.Node.Index) bool {
             .test_decl,
             .switch_case,
             .switch_case_inline,
-            .switch_case_one,
-            .switch_case_inline_one,
             .container_field_init,
             .container_field_align,
             .container_field,

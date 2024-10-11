@@ -135,8 +135,6 @@ fn expr(astrl: *AstRlAnnotate, node: Ast.Node.Index, block: ?*Block, ri: ResultI
     const node_tags = tree.nodes.items(.tag);
     switch (node_tags[node]) {
         .root,
-        .switch_case_one,
-        .switch_case_inline_one,
         .switch_case,
         .switch_case_inline,
         .switch_range,
