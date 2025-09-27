@@ -2,13 +2,14 @@ const std = @import("../std.zig");
 const Alignment = std.mem.Alignment;
 const Allocator = std.mem.Allocator;
 
-base: usize,
-limit: usize,
+unused: usize,
+buffer_end: [*]u8,
 
 pub fn init(buffer: []u8) @This() {
-    const base: usize = @intFromPtr(buffer.ptr);
-    const limit: usize = base + buffer.len;
-    return .{ .base = base, .limit = limit };
+    return .{
+        .unused = buffer.len,
+        .buffer_end = buffer.ptr + buffer.len,
+    };
 }
 
 pub fn allocator(self: *@This()) Allocator {
@@ -25,12 +26,12 @@ pub fn allocator(self: *@This()) Allocator {
 
 /// Save the current state of the allocator
 pub fn savestate(self: *@This()) usize {
-    return self.base;
+    return self.unused;
 }
 
 /// Restore a previously saved allocator state
 pub fn restore(self: *@This(), state: usize) void {
-    self.base = state;
+    self.unused = state;
 }
 
 pub fn alloc(
@@ -39,15 +40,19 @@ pub fn alloc(
     alignment: Alignment,
     _: usize,
 ) ?[*]u8 {
-    const self: *@This() = @alignCast(@ptrCast(ctx));
+    const self: *@This() = @ptrCast(@alignCast(ctx));
+
+    const buffer_base = self.buffer_end - self.unused;
+    const align_bytes = alignment.toByteUnits();
+    const ptr_adjust = std.mem.alignPointerOffset(buffer_base, align_bytes);
+    const align_overhead = ptr_adjust orelse return null;
 
     // Only allocate if we have enough space
-    const aligned = alignment.forward(self.base);
-    const end_addr = @addWithOverflow(aligned, length);
-    if ((end_addr[1] == 1) | (end_addr[0] > self.limit)) return null;
+    const allocated_length = length + align_overhead;
+    if (allocated_length > self.unused) return null;
 
-    self.base = end_addr[0];
-    return @ptrFromInt(aligned);
+    self.unused = self.unused - allocated_length;
+    return buffer_base + align_overhead;
 }
 
 pub fn resize(
@@ -57,21 +62,19 @@ pub fn resize(
     new_length: usize,
     _: usize,
 ) bool {
-    const self: *@This() = @alignCast(@ptrCast(ctx));
-
-    const alloc_base = @intFromPtr(memory.ptr);
-    const next_alloc = alloc_base + memory.len;
+    const self: *@This() = @ptrCast(@alignCast(ctx));
 
     // Prior allocations can be shrunk, but not grown
+    const next_alloc = memory.ptr + memory.len;
+    const buffer_base = self.buffer_end - self.unused;
     const shrinking = memory.len >= new_length;
-    if (next_alloc != self.base) return shrinking;
+    if (next_alloc != buffer_base) return shrinking;
 
     // Grow allocations only if we have enough space
-    const end_addr = @addWithOverflow(alloc_base, new_length);
-    const overflow = (end_addr[1] == 1) | (end_addr[0] > self.limit);
+    const overflow = new_length > self.unused + memory.len;
     if (!shrinking and overflow) return false;
 
-    self.base = end_addr[0];
+    self.unused = (self.unused + memory.len) - new_length;
     return true;
 }
 
@@ -95,14 +98,14 @@ pub fn free(
     _: Alignment,
     _: usize,
 ) void {
-    const self: *@This() = @alignCast(@ptrCast(ctx));
+    const self: *@This() = @ptrCast(@alignCast(ctx));
 
     // Only free the immediate last allocation
-    const alloc_base = @intFromPtr(memory.ptr);
-    const next_alloc = alloc_base + memory.len;
-    if (next_alloc != self.base) return;
+    const next_alloc = memory.ptr + memory.len;
+    const buffer_base = self.buffer_end - self.unused;
+    if (next_alloc != buffer_base) return;
 
-    self.base = self.base - memory.len;
+    self.unused = self.unused + memory.len;
 }
 
 test "BumpAllocator" {
@@ -159,6 +162,20 @@ test "avoid integer overflow for obscene allocations" {
     try std.testing.expectError(error.OutOfMemory, problem);
 }
 
+test "works at comptime" {
+    comptime {
+        var buffer: [256]u8 = undefined;
+        var bump_allocator: @This() = .init(&buffer);
+        const gpa = bump_allocator.allocator();
+
+        var list: std.ArrayList(u8) = .empty;
+        defer list.deinit(gpa);
+        for ("Hello, World!\n") |byte| {
+            try list.append(gpa, byte);
+        }
+    }
+}
+
 /// Deprecated; to be removed after 0.16.0 is tagged.
 /// Provides a lock free thread safe `Allocator` interface to the underlying `FixedBufferAllocator`
 /// Using this at the same time as the interface returned by `allocator` is not thread safe.
@@ -181,21 +198,26 @@ fn threadSafeAlloc(
     alignment: Alignment,
     _: usize,
 ) ?[*]u8 {
-    const self: *@This() = @alignCast(@ptrCast(ctx));
+    const self: *@This() = @ptrCast(@alignCast(ctx));
+    const align_bytes = alignment.toByteUnits();
 
-    var old_base = @atomicLoad(usize, &self.base, .seq_cst);
+    var old_unused = @atomicLoad(usize, &self.unused, .seq_cst);
+
     while (true) {
-        // Only allocate if we have enough space
-        const aligned = alignment.forward(old_base);
-        const end_addr = @addWithOverflow(aligned, length);
-        if ((end_addr[1] == 1) | (end_addr[0] > self.limit)) return null;
+        const buffer_base = self.buffer_end - old_unused;
+        const align_overhead = std.mem.alignPointerOffset(buffer_base, align_bytes) orelse return null;
 
-        if (@cmpxchgWeak(usize, &self.base, old_base, @intCast(end_addr[0]), .seq_cst, .seq_cst)) |prev| {
-            old_base = prev;
+        const allocated_length = length + align_overhead;
+        if (allocated_length > old_unused) return null;
+
+        const new_unused = old_unused - allocated_length;
+
+        if (@cmpxchgWeak(usize, &self.unused, old_unused, new_unused, .seq_cst, .seq_cst)) |prev| {
+            old_unused = prev;
             continue;
         }
 
-        return @ptrFromInt(aligned);
+        return buffer_base + align_overhead;
     }
 }
 

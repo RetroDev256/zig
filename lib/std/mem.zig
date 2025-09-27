@@ -684,7 +684,7 @@ test orderZ {
 /// Returns true if a slice owns the memory for an element pointer
 pub fn sliceOwnsPtr(comptime T: type, slice: []const T, elem: *T) bool {
     const above_base = @intFromPtr(elem) >= @intFromPtr(slice.ptr);
-    const below_limit = @intFromPtr(elem) < @intFromPtr(&slice[slice.len]);
+    const below_limit = @intFromPtr(elem) < @intFromPtr(slice.ptr) + slice.len * @sizeOf(T);
     return above_base and below_limit;
 }
 
